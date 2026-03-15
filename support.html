@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wilderness — Support</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    details { margin-bottom: 1rem; }
+    summary {
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.5rem 0;
+      color: #1d1d1f;
+    }
+    details p, details ol { margin-top: 0.5rem; padding-left: 0.5rem; }
+    .contact {
+      margin-top: 3rem;
+      padding: 1.5rem;
+      background: #f5f5f7;
+      border-radius: 12px;
+    }
+    .contact h2 { margin-top: 0; }
+    .contact a { color: #0066cc; text-decoration: none; }
+    .contact a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Support</h1>
+  <p class="app-name">Wilderness for iOS</p>
+
+  <p>Wilderness is a location-based exploration app that reveals a fog-covered map as you move through the real world. All your data stays on your device.</p>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <details>
+    <summary>How do I start exploring?</summary>
+    <p>Grant Wilderness location permission when prompted and the app will begin tracking automatically. As you move, the fog on your map will start to clear. Regions require about 15 minutes of presence to fully reveal.</p>
+  </details>
+
+  <details>
+    <summary>How do I enable background tracking?</summary>
+    <p>Go to iOS Settings > Wilderness > Location and select "Always." This lets Wilderness track your exploration even when you're not actively using the app. You'll see a blue indicator in your status bar when background tracking is active.</p>
+  </details>
+
+  <details>
+    <summary>How much battery does Wilderness use?</summary>
+    <p>Wilderness uses motion detection to adjust GPS precision based on your activity. When you're stationary, GPS is reduced to cell-tower accuracy to save battery. When you're moving, full GPS precision is used. You can check battery usage in iOS Settings > Battery.</p>
+  </details>
+
+  <details>
+    <summary>Can I pause tracking?</summary>
+    <p>Yes. Open Wilderness, go to Settings, and toggle "Pause App." This stops all location collection. Your existing data is preserved.</p>
+  </details>
+
+  <details>
+    <summary>How do I back up my data?</summary>
+    <p>If you're signed into iCloud, Wilderness automatically backs up your exploration data to your personal iCloud account. You can also export your data as JSON from Settings > Data > Export.</p>
+  </details>
+
+  <details>
+    <summary>How do I delete my data?</summary>
+    <p>Go to Settings > Danger Zone > Delete All Data. This permanently removes all exploration data from your device and iCloud backup. This cannot be undone.</p>
+  </details>
+
+  <details>
+    <summary>Why is my map not revealing?</summary>
+    <p>Check the following:</p>
+    <ol>
+      <li>Location permission is set to "Always" or "While Using" in iOS Settings.</li>
+      <li>The app is not paused (check Settings in the app).</li>
+      <li>You've spent enough time in the area — regions require about 15 minutes to fully reveal.</li>
+      <li>Your GPS signal is strong enough (the app requires accuracy within 30 meters).</li>
+    </ol>
+  </details>
+
+  <details>
+    <summary>Is my data sent to any servers?</summary>
+    <p>No. All data stays on your device. iCloud backup goes to your personal Apple account. Wilderness has no servers, no analytics, and no third-party SDKs. See our <a href="privacy">Privacy Policy</a> for details.</p>
+  </details>
+
+  <div class="contact">
+    <h2>Contact</h2>
+    <p>If your question isn't answered above, reach out at:<br>
+    <a href="mailto:TODO@grignani.org">TODO@grignani.org</a></p>
+  </div>
+</body>
+</html>
