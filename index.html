@@ -9,14 +9,29 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
+      overflow: hidden;
+      background: #d6d6f8;
+      color: #d6d6f8;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .content {
+      position: relative;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #0f0f4c;
-      color: #d6d6f8;
+      min-height: 100vh;
       padding: 2rem;
       text-align: center;
+      pointer-events: none;
     }
     h1 {
       font-size: 3rem;
@@ -34,6 +49,7 @@
     nav {
       display: flex;
       gap: 1.5rem;
+      pointer-events: auto;
     }
     nav a {
       color: #d6d6f8;
@@ -53,13 +69,207 @@
   </style>
 </head>
 <body>
-  <h1>Wilderness</h1>
-  <p class="tagline">See where you've been. A fog-covered map that reveals itself as you explore the real world.</p>
-  <nav>
-    <a href="privacy.html">Privacy</a>
-    <a href="support.html">Support</a>
-  </nav>
-  <p class="footer" id="footer"></p>
-  <script>document.getElementById('footer').textContent = '\u00A9 ' + new Date().getFullYear() + ' Raphael Grignani';</script>
+  <canvas id="fog"></canvas>
+  <div class="content">
+    <h1>Wilderness</h1>
+    <p class="tagline">See where you've been. A fog-covered map that reveals itself as you explore the real world.</p>
+    <nav>
+      <a href="privacy.html">Privacy</a>
+      <a href="support.html">Support</a>
+    </nav>
+    <p class="footer" id="footer"></p>
+  </div>
+
+  <script>
+    document.getElementById('footer').textContent =
+      '\u00A9 ' + new Date().getFullYear() + ' Raphael Grignani';
+
+    const canvas = document.getElementById('fog');
+    const ctx = canvas.getContext('2d');
+
+    let w, h;
+    let mouseX = -1000, mouseY = -1000;
+    let isMoving = false;
+    let stationaryTime = 0;
+    let lastMoveTime = 0;
+
+    // All revealed spots: { x, y, radius, opacity }
+    const reveals = [];
+    // Trail points while moving: { x, y, time }
+    const trail = [];
+
+    // Stationary circle growth
+    let stationaryX = 0, stationaryY = 0;
+    let stationaryRadius = 0;
+    const maxStationaryRadius = 120;
+    const stationaryGrowthRate = 40; // px per second
+
+    // Trail width
+    const trailWidth = 10;
+
+    // How long cursor must be still before stationary mode (ms)
+    const stationaryThreshold = 400;
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    function onMove(x, y) {
+      const dx = x - mouseX;
+      const dy = y - mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      mouseX = x;
+      mouseY = y;
+
+      if (dist > 2) {
+        // Bake current stationary circle before moving on
+        if (stationaryRadius > 5) {
+          reveals.push({
+            x: stationaryX,
+            y: stationaryY,
+            radius: stationaryRadius,
+            opacity: 0.95
+          });
+        }
+
+        isMoving = true;
+        lastMoveTime = performance.now();
+        stationaryRadius = 0;
+
+        trail.push({ x, y, time: performance.now() });
+
+        // Keep trail manageable
+        if (trail.length > 2000) trail.splice(0, 500);
+      }
+    }
+
+    document.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    document.addEventListener('touchstart', (e) => {
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    });
+
+    let lastFrame = performance.now();
+
+    function render(now) {
+      const dt = (now - lastFrame) / 1000;
+      lastFrame = now;
+
+      const timeSinceMove = now - lastMoveTime;
+
+      // Detect stationary
+      if (timeSinceMove > stationaryThreshold && mouseX > -500) {
+        if (!isMoving || stationaryRadius === 0) {
+          stationaryX = mouseX;
+          stationaryY = mouseY;
+        }
+        isMoving = false;
+        stationaryRadius = Math.min(stationaryRadius + stationaryGrowthRate * dt, maxStationaryRadius);
+      }
+
+      // Bake old trail points into permanent reveals periodically
+      if (trail.length > 500) {
+        bakeTrail(trail.splice(0, 250));
+      }
+
+      // Draw fog
+      ctx.clearRect(0, 0, w, h);
+
+      // Fill fog layer
+      ctx.fillStyle = 'rgba(1, 1, 35, 0.98)';
+      ctx.fillRect(0, 0, w, h);
+
+      // Punch through revealed areas
+      ctx.globalCompositeOperation = 'destination-out';
+
+      // Draw permanent reveals
+      for (let i = 0; i < reveals.length; i++) {
+        const r = reveals[i];
+        const grad = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, r.radius);
+        grad.addColorStop(0, 'rgba(255,255,255,' + r.opacity + ')');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw trail as layered strokes: blurred outer + sharp inner
+      if (trail.length > 1) {
+        // Single gaussian blur pass over the trail
+        ctx.save();
+        ctx.filter = 'blur(12px)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = trailWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(trail[0].x, trail[0].y);
+        for (let i = 1; i < trail.length; i++) {
+          ctx.lineTo(trail[i].x, trail[i].y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw stationary circle
+      if (stationaryRadius > 0) {
+        const grad = ctx.createRadialGradient(
+          stationaryX, stationaryY, 0,
+          stationaryX, stationaryY, stationaryRadius
+        );
+        grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+        grad.addColorStop(0.6, 'rgba(255,255,255,0.6)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(stationaryX, stationaryY, stationaryRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw cursor glow (small constant reveal around cursor)
+      if (mouseX > -500) {
+        const cursorGrad = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 20);
+        cursorGrad.addColorStop(0, 'rgba(255,255,255,0.9)');
+        cursorGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = cursorGrad;
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, 20, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+
+      requestAnimationFrame(render);
+    }
+
+    function bakeTrail(points) {
+      // Convert trail segments into permanent circular reveals
+      for (let i = 0; i < points.length; i += 3) {
+        reveals.push({
+          x: points[i].x,
+          y: points[i].y,
+          radius: trailWidth * 2.5,
+          opacity: 0.7
+        });
+      }
+    }
+
+    requestAnimationFrame(render);
+  </script>
 </body>
 </html>
